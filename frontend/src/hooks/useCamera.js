@@ -3,7 +3,7 @@ import { validateIP, buildStreamUrl, parseIP } from '../utils/cameraUtils'
 
 const STORAGE_KEY = 'visionai-camera-ip'
 
-export function useCamera({ showToast }) {
+export function useCamera({ showToast, settings = {} }) {
   const [cameraIP, setCameraIP] = useState(
     () => localStorage.getItem(STORAGE_KEY) || ''
   )
@@ -30,7 +30,9 @@ export function useCamera({ showToast }) {
       return false
     }
 
-    const url = buildStreamUrl(ip)
+    const port = settings?.port || 81
+    const path = settings?.path || '/stream'
+    const url = buildStreamUrl(ip, port, path)
     setConnectionError(null)
     setIsConnecting(true)
     setIsConnected(false)
@@ -41,9 +43,9 @@ export function useCamera({ showToast }) {
     setCameraIP(cleanIP)
     localStorage.setItem(STORAGE_KEY, cleanIP)
 
-    showToast('Connecting to camera…', 'info')
+    showToast('Connecting directly to camera…', 'info')
     return true
-  }, [showToast])
+  }, [settings, showToast])
 
   const disconnect = useCallback(() => {
     setStreamUrl(null)
@@ -58,18 +60,19 @@ export function useCamera({ showToast }) {
     setIsConnected(true)
     setIsConnecting(false)
     setConnectionError(null)
-    showToast('Camera connected!', 'success')
+    showToast('Camera connected directly!', 'success')
   }, [showToast])
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((customMsg) => {
     setIsConnected(false)
     setIsConnecting(false)
-    setStreamUrl(null)
     setConnectionError(
-      'Cannot reach the camera. Check that:\n' +
-      '• The IP address is correct\n' +
-      '• ESP32-CAM is powered on\n' +
-      '• Your device is on the same Wi-Fi network'
+      customMsg || (
+        'Cannot reach the camera. Check that:\n' +
+        '• The IP address is correct (check ESP32 Serial Monitor)\n' +
+        '• ESP32-CAM is powered on and connected to your phone hotspot\n' +
+        '• The stream port/path match your firmware (default: 81 /stream)'
+      )
     )
     showToast('Camera connection failed', 'error')
   }, [showToast])

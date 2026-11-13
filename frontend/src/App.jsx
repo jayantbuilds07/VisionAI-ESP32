@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 
-import Navbar    from './components/layout/Navbar'
-import BottomNav from './components/layout/BottomNav'
-import Toast     from './components/ui/Toast'
+import Navbar        from './components/layout/Navbar'
+import BottomNav     from './components/layout/BottomNav'
+import Toast         from './components/ui/Toast'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 
 import Dashboard    from './pages/Dashboard'
 import CameraPage   from './pages/CameraPage'
@@ -42,21 +43,20 @@ export default function App() {
   const [detectionHistory, setDetectionHistory] = useState(loadHistory)
   const [settings,         setSettingsState]    = useState(loadSettings)
 
-  const camera      = useCamera({ showToast })
+  const camera      = useCamera({ showToast, settings })
   const detection   = useObjectDetection({ settings })
   const faceDetect  = useFaceDetection()
   const voice       = useVoice()
 
+  const { stopDetection } = detection
+  const { clearFaces }    = faceDetect
+
   useEffect(() => {
-  if (!camera.isConnected) {
-    detection.stopDetection()
-    faceDetect.clearFaces()
-  }
-}, [
-  camera.isConnected,
-  detection.stopDetection,
-  faceDetect.clearFaces
-])
+    if (!camera.isConnected) {
+      stopDetection()
+      clearFaces()
+    }
+  }, [camera.isConnected, stopDetection, clearFaces])
 
   const addToHistory = useCallback((predictions) => {
     if (!predictions.length) return
@@ -88,7 +88,7 @@ export default function App() {
     })
   }, [])
 
-  const pages = {
+  const pages = useMemo(() => ({
     dashboard: (
       <Dashboard
         camera={camera}
@@ -127,7 +127,11 @@ export default function App() {
         showToast={showToast}
       />
     ),
-  }
+  }), [
+    camera, detection, faceDetect, voice,
+    detectionHistory, addToHistory, clearHistory,
+    settings, updateSettings, showToast, setPage,
+  ])
 
   return (
     <div className="app-shell">
@@ -157,7 +161,9 @@ export default function App() {
 
         <main className="app-main">
           <div className="page-content">
-            {pages[page] ?? pages.dashboard}
+            <ErrorBoundary onReset={() => setPage('dashboard')}>
+              {pages[page] ?? pages.dashboard}
+            </ErrorBoundary>
           </div>
         </main>
       </div>

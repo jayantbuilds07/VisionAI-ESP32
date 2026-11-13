@@ -1,20 +1,39 @@
-export function parseIP(input) {
-  if (!input) return ''
-  let clean = input.trim()
-  if (clean.startsWith('http://') || clean.startsWith('https://')) {
-    try {
-      clean = new URL(clean).hostname
-    } catch {
-      clean = clean.replace(/^https?:\/\//, '').split(':')[0].split('/')[0]
+export function parseCameraTarget(input, defaultPort = 81, defaultPath = '/stream') {
+  if (!input) return { host: '', port: defaultPort, path: defaultPath, fullUrl: '' }
+  let raw = input.trim()
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    raw = 'http://' + raw
+  }
+  try {
+    const url = new URL(raw)
+    const host = url.hostname
+    const port = url.port || defaultPort
+    let path = url.pathname && url.pathname !== '/' ? url.pathname : defaultPath
+    if (!path.startsWith('/')) path = '/' + path
+    return { host, port, path, fullUrl: `http://${host}:${port}${path}` }
+  } catch {
+    const clean = input.trim().replace(/^https?:\/\//, '')
+    const [hostPort, ...pathParts] = clean.split('/')
+    const [host, port] = hostPort.split(':')
+    const finalPath = pathParts.length > 0 ? '/' + pathParts.join('/') : defaultPath
+    return {
+      host: host || '',
+      port: port || defaultPort,
+      path: finalPath,
+      fullUrl: host ? `http://${host}:${port || defaultPort}${finalPath}` : ''
     }
   }
-  return clean
+}
+
+export function parseIP(input) {
+  if (!input) return ''
+  return parseCameraTarget(input).host
 }
 
 export function validateIP(input) {
-  const ip = parseIP(input)
-  if (!ip) return 'Please enter an IP address (e.g. 192.168.1.100)'
-  const parts = ip.split('.')
+  const { host } = parseCameraTarget(input)
+  if (!host) return 'Please enter an IP address (e.g. 10.19.158.145)'
+  const parts = host.split('.')
   if (parts.length !== 4) return 'IP must have 4 parts separated by dots'
   for (const part of parts) {
     const n = Number(part)
@@ -28,15 +47,15 @@ export function validateIP(input) {
 export function buildStreamUrl(input, port = 81, path = '/stream') {
   const error = validateIP(input)
   if (error) return null
-  const ip = parseIP(input)
-  return `http://${ip}:${port}${path}`
+  const parsed = parseCameraTarget(input, port, path)
+  return parsed.fullUrl
 }
 
 export function buildSnapshotUrl(input, port = 80, path = '/capture') {
   const error = validateIP(input)
   if (error) return null
-  const ip = parseIP(input)
-  return `http://${ip}:${port}${path}`
+  const parsed = parseCameraTarget(input, port, path)
+  return `http://${parsed.host}:${port}${path}`
 }
 
 export function formatIP(input) {

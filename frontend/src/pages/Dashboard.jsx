@@ -50,7 +50,7 @@ export default function Dashboard({ camera, detection, faceDetection, detectionH
           }
           label="AI Model"
           value={modelLabel}
-          sub="COCO-SSD v2.2"
+          sub="YOLO11s ONNX"
           iconClass={modelStatus === 'ready' ? 'stat-icon-green' : modelStatus === 'loading' ? 'stat-icon-yellow' : 'stat-icon-red'}
         />
 
@@ -148,7 +148,7 @@ export default function Dashboard({ camera, detection, faceDetection, detectionH
               <StatusBadge status={cameraStatus} label={cameraLabel} />
             </div>
             <div className="status-row">
-              <span>COCO-SSD Model</span>
+              <span>YOLO11s Model</span>
               <StatusBadge
                 status={modelStatus === 'ready' ? 'ready' : modelStatus === 'loading' ? 'loading' : 'error'}
                 label={modelLabel}

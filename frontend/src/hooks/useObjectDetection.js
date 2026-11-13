@@ -206,13 +206,14 @@ export function useObjectDetection({ settings = {} }) {
   const isDetectingRef = useRef(false)
   const inferenceActiveRef = useRef(false)
   const corsBlockedRef = useRef(false)
+  const loopTimerRef = useRef(null)
 
   const [modelStatus, setModelStatus] = useState('loading')
   const [detections, setDetections] = useState([])
   const [isDetecting, setIsDetecting] = useState(false)
   const [corsBlocked, setCorsBlocked] = useState(false)
 
-  const confidenceThreshold = settings.confidenceThreshold ?? 0.45
+  const confidenceThreshold = settings.confidenceThreshold ?? 0.25
   const detectionInterval = settings.detectionInterval ?? 1500
 
   // Load YOLOv11 ONNX model
@@ -226,7 +227,7 @@ export function useObjectDetection({ settings = {} }) {
         const session = await ort.InferenceSession.create(
           MODEL_URL,
           {
-            executionProviders: ['wasm']
+            executionProviders: ['webgpu', 'wasm']
           }
         )
 
@@ -266,7 +267,7 @@ export function useObjectDetection({ settings = {} }) {
     const img = imgRef.current
     const overlayCanvas = overlayCanvasRef.current
 
-    if (!img.naturalWidth || !img.naturalHeight) return []
+    if (img.isConnected === false || !img.naturalWidth || !img.naturalHeight) return []
 
     inferenceActiveRef.current = true
 
@@ -390,7 +391,7 @@ const predictions = decodedPredictions.map(pred => ({
       }
 
       if (isDetectingRef.current) {
-        setTimeout(loop, detectionInterval)
+        loopTimerRef.current = setTimeout(loop, detectionInterval)
       }
     }
 
@@ -401,6 +402,11 @@ const predictions = decodedPredictions.map(pred => ({
     isDetectingRef.current = false
     setIsDetecting(false)
     setDetections([])
+
+    if (loopTimerRef.current) {
+      clearTimeout(loopTimerRef.current)
+      loopTimerRef.current = null
+    }
 
     if (overlayCanvasRef?.current) {
       const ctx = overlayCanvasRef.current.getContext('2d')

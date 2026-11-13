@@ -19,6 +19,10 @@ export default function CameraStream({
     }
   }, [imgRef])
 
+  // Wrap callbacks so the raw SyntheticEvent is never passed into state
+  const handleLoad = useCallback(() => { onLoad?.() }, [onLoad])
+  const handleError = useCallback(() => { onError?.() }, [onError])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div className="camera-stream-wrap" style={{ minHeight: 200 }}>
@@ -30,8 +34,8 @@ export default function CameraStream({
               alt="ESP32-CAM live stream"
               className="camera-stream-img"
               crossOrigin="anonymous"
-              onLoad={onLoad}
-              onError={onError}
+              onLoad={handleLoad}
+              onError={handleError}
               draggable={false}
               style={{ display: isConnected ? 'block' : 'none' }}
             />

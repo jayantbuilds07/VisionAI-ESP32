@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import CameraStream      from '../components/camera/CameraStream'
 import DetectionHistory  from '../components/detection/DetectionHistory'
 import VoiceAssistant    from '../components/voice/VoiceAssistant'
@@ -19,35 +19,45 @@ export default function AIPage({
 
   const [faceRunning, setFaceRunning] = useState(false)
 
+  const stopDetectionRef = useRef(detection.stopDetection)
+  useEffect(() => { stopDetectionRef.current = detection.stopDetection }, [detection.stopDetection])
+
+  useEffect(() => {
+    return () => {
+      stopDetectionRef.current(overlayRef)
+    }
+  }, []) // only on unmount
+
   const handleDetectionBatch = useCallback(async (predictions) => {
-  // Update object history and voice only when objects are detected
-  if (predictions.length > 0) {
-    addToHistory(predictions)
+    if (!imgRef?.current || imgRef.current.isConnected === false) return
 
-    const seen = new Set()
+    // Update object history and voice only when objects are detected
+    if (predictions.length > 0) {
+      addToHistory(predictions)
 
-    predictions.forEach(pred => {
-      if (!seen.has(pred.class)) {
-        seen.add(pred.class)
-        voice.announceDetection(pred.class, pred.position)
+      const seen = new Set()
+
+      predictions.forEach(pred => {
+        if (!seen.has(pred.class)) {
+          seen.add(pred.class)
+          voice.announceDetection(pred.class, pred.position)
+        }
+      })
+    }
+
+    // Check whether a person is currently visible
+    const personDetected = predictions.some(
+      pred => pred.class === 'person'
+    )
+
+    if (personDetected && faceDetection.faceStatus === 'ready') {
+      if (imgRef.current && imgRef.current.isConnected) {
+        await faceDetection.detectFaces(imgRef, null)
       }
-    })
-  }
-
-  // Check whether a person is currently visible
-  const personDetected = predictions.some(
-    pred => pred.class === 'person'
-  )
-
-  if (personDetected && faceDetection.faceStatus === 'ready') {
-    // Automatically check the current camera frame for faces
-    await faceDetection.detectFaces(imgRef, null)
-  } else {
-    // No person detected: reset face count immediately
-    faceDetection.clearFaces()
-  }
-
-}, [addToHistory, voice, faceDetection, imgRef])
+    } else {
+      faceDetection.clearFaces()
+    }
+  }, [addToHistory, voice, faceDetection, imgRef])
 
   const handleStartDetection = useCallback(() => {
     if (!camera.isConnected) {

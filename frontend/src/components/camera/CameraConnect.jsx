@@ -63,7 +63,7 @@ export default function CameraConnect({ camera }) {
             id="camera-ip"
             type="text"
             className={`input-field ${inputError || connectionError ? 'error' : ''}`}
-            placeholder="192.168.1.100"
+            placeholder="10.19.158.145:81"
             value={inputValue}
             onChange={e => { setInputValue(e.target.value); setInputError(null) }}
             onKeyDown={handleKeyDown}
@@ -87,7 +87,7 @@ export default function CameraConnect({ camera }) {
           <span className="input-error">⚠ {inputError}</span>
         )}
         <span className="input-hint">
-          Enter the IP shown on your ESP32-CAM serial monitor
+          Enter the IP from ESP32 Serial Monitor (e.g. 10.19.158.145 or 10.19.158.145:81)
         </span>
       </div>
 

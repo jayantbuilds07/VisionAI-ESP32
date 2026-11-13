@@ -71,7 +71,7 @@ export function generateResponse({
 }
 
 export function getObjectPosition(bbox, imageWidth) {
-  const [x, y, width] = bbox;
+  const [x, , width] = bbox;
 
   const objectCenter = x + width / 2;
   const relativePosition = objectCenter / imageWidth;
